@@ -6,6 +6,7 @@ import tcp.utils.CloseUtils;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 /**
  * @author zhangms
@@ -22,6 +23,7 @@ public class TCPClient {
         readHandler.start();
         write(socket.getOutputStream());
         readHandler.close();
+        socket.close();
     }
 
     private void write(OutputStream outputStream) {
@@ -52,15 +54,27 @@ public class TCPClient {
 
         @Override
         public void run() {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            while (!done) {
-                try {
-                    String str = reader.readLine();
+            try {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                while (!done) {
+                    String str;
+                    try {
+                        str = reader.readLine();
+                    } catch (SocketTimeoutException e) {
+                        continue;
+                    }
+                    if (str == null) {
+                        System.out.println("连接已关闭，无法读取数据！");
+                        break;
+                    }
                     System.out.println(str);
-                } catch (IOException e) {
-                    System.out.println("读取失败........");
-                    close();
                 }
+            } catch (Exception e) {
+                if (!done) {
+                    System.out.println("非正常断开：" + e.getMessage());
+                }
+            } finally {
+                CloseUtils.close(inputStream);
             }
         }
 

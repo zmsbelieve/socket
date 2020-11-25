@@ -1,6 +1,5 @@
 package tcp.server;
 
-import tcp.constants.TCPConstants;
 import tcp.constants.UDPConstants;
 import tcp.utils.ByteUtils;
 
@@ -24,7 +23,7 @@ public class UDPProvider {
         provider.start();
         PROVIDER = provider;
     }
-    private static void stop() {
+    public static void stop() {
         if (PROVIDER != null) {
             PROVIDER.exit();
             PROVIDER = null;

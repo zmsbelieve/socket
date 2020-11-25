@@ -29,8 +29,7 @@ public class UDPSearch {
         }
         receive.await(timeout, TimeUnit.SECONDS);
         ServerInfo serverInfo = listener.getAndClose();
-        System.out.println(serverInfo);
-        return null;
+        return serverInfo;
     }
 
     private static void sendBroadcast() throws IOException {

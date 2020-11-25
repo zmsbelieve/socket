@@ -1,5 +1,7 @@
 package tcp.server;
 
+import tcp.utils.CloseUtils;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,6 +20,33 @@ public class TcpServer {
     public TcpServer(int port) {
         this.port = port;
 
+    }
+
+    public boolean start() {
+        try {
+            serverListener = new ServerListener(port);
+            serverListener.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public void stop() {
+        if (serverListener != null) {
+            serverListener.exit();
+        }
+        for (ClientHandler clientHandler : clientHandlerList) {
+            clientHandler.exit();
+        }
+        clientHandlerList.clear();
+    }
+
+    public void sendBroadcast(String message) {
+        for (ClientHandler clientHandler : clientHandlerList) {
+            clientHandler.send(message);
+        }
     }
 
     class ServerListener extends Thread {
@@ -41,6 +70,11 @@ public class TcpServer {
 
                 }
             }
+        }
+
+        public void exit() {
+            done = true;
+            CloseUtils.close(serverSocket);
         }
     }
 }

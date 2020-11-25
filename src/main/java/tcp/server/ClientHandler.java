@@ -4,6 +4,8 @@ import tcp.utils.CloseUtils;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author zhangms
@@ -28,20 +30,46 @@ public class ClientHandler {
         writeHandler.send(message);
     }
 
+    public void exit() {
+        readHandler.close();
+        writeHandler.exit();
+        CloseUtils.close(socket);
+        System.out.println("客户端已经退出");
+    }
+
     class WriteHandler {
-        private OutputStream outputStream;
+        private PrintStream printStream;
+        ExecutorService executorService;
+        private boolean done;
+
         public WriteHandler(OutputStream outputStream) {
-            this.outputStream = outputStream;
+            this.printStream = new PrintStream(outputStream);
+            this.executorService = Executors.newSingleThreadExecutor();
         }
 
         private void send(String message) {
+            executorService.execute(new WriteRunnable(message));
+        }
 
+        private void exit() {
+            done = true;
+            CloseUtils.close(printStream);
+            executorService.shutdownNow();
         }
 
         class WriteRunnable implements Runnable {
+            private String message;
+
+            public WriteRunnable(String message) {
+                this.message = message;
+            }
+
             @Override
             public void run() {
-
+                if (WriteHandler.this.done) {
+                    return;
+                }
+                WriteHandler.this.printStream.println(message);
             }
         }
 
@@ -57,18 +85,14 @@ public class ClientHandler {
 
         @Override
         public void run() {
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-
-            while (!done) {
-                try {
+            try{
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                while(!done){
                     String str = bufferedReader.readLine();
                     System.out.println(str);
-                } catch (IOException e) {
-                    System.out.println("服务器读数据失败。。。");
-                    e.printStackTrace();
-                } finally {
-                    close();
                 }
+            }catch (Exception e){
+                close();
             }
 
         }
