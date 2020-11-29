@@ -13,38 +13,37 @@ import java.net.SocketTimeoutException;
  * @date 2020/11/25
  */
 public class TCPClient {
+    private Socket socket;
+    private ReadHandler readHandler;
+    private PrintStream printStream;
 
-    public void linkWith(ServerInfo serverInfo) throws IOException {
+    public TCPClient(Socket socket, ReadHandler readHandler) throws IOException {
+        this.socket = socket;
+        this.readHandler = readHandler;
+        this.printStream = new PrintStream(socket.getOutputStream());
+    }
+
+    public static TCPClient startWith(ServerInfo serverInfo) throws IOException {
         System.out.println("开始进行tcp客户端的连接...");
         Socket socket = new Socket();
         socket.setSoTimeout(3000);
         socket.connect(new InetSocketAddress(serverInfo.getAddress(), serverInfo.getPort()), 3000);
         ReadHandler readHandler = new ReadHandler(socket.getInputStream());
         readHandler.start();
-        write(socket.getOutputStream());
+        return new TCPClient(socket, readHandler);
+    }
+
+    public void send(String msg) {
+        this.printStream.println(msg);
+    }
+
+    public void stop() {
         readHandler.close();
-        socket.close();
+        CloseUtils.close(printStream);
+        CloseUtils.close(socket);
     }
 
-    private void write(OutputStream outputStream) {
-        InputStream in = System.in;
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
-        PrintStream printStream = new PrintStream(outputStream);
-        while (true) {
-            try {
-                String str = bufferedReader.readLine();
-                if ("bye".equals(str)) {
-                    break;
-                }
-                printStream.println(str);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        printStream.close();
-    }
-
-    class ReadHandler extends Thread {
+    static class ReadHandler extends Thread {
         private InputStream inputStream;
         private volatile boolean done;
 

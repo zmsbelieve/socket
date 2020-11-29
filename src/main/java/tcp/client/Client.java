@@ -2,7 +2,7 @@ package tcp.client;
 
 import tcp.client.bean.ServerInfo;
 
-import java.io.IOException;
+import java.io.*;
 
 /**
  * @author zhangms
@@ -15,8 +15,28 @@ public class Client {
         ServerInfo serverInfo = UDPSearch.search(5);
         //tcp连接
         if (serverInfo != null) {
-            TCPClient tcpClient = new TCPClient();
-            tcpClient.linkWith(serverInfo);
+            TCPClient tcpClient = TCPClient.startWith(serverInfo);
+            if (tcpClient == null) {
+                return;
+            }
+            write(tcpClient);
         }
+    }
+
+    public static void write(TCPClient tcpClient) {
+        InputStream in = System.in;
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
+        while (true) {
+            try {
+                String str = bufferedReader.readLine();
+                if ("bye".equals(str)) {
+                    break;
+                }
+                tcpClient.send(str);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        tcpClient.stop();
     }
 }

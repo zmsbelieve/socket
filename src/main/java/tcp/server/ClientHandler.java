@@ -15,11 +15,13 @@ public class ClientHandler {
     private Socket socket;
     private ReadHandler readHandler;
     private WriteHandler writeHandler;
+    private ClientHandlerCallback clientHandlerCallback;
 
-    public ClientHandler(Socket socket) throws IOException {
+    public ClientHandler(Socket socket, ClientHandlerCallback clientHandlerCallback) throws IOException {
         this.socket = socket;
         this.readHandler = new ReadHandler(socket.getInputStream());
         this.writeHandler = new WriteHandler(socket.getOutputStream());
+        this.clientHandlerCallback = clientHandlerCallback;
     }
 
     public void readToPrint() {
@@ -75,6 +77,15 @@ public class ClientHandler {
 
     }
 
+    public interface ClientHandlerCallback {
+        // 自身关闭通知
+        void onSelfClosed(ClientHandler handler);
+
+        // 收到消息时通知
+        void onNewMessageArrived(ClientHandler handler, String msg);
+    }
+
+
     class ReadHandler extends Thread {
         private InputStream inputStream;
         private volatile boolean done;
@@ -85,13 +96,14 @@ public class ClientHandler {
 
         @Override
         public void run() {
-            try{
+            try {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-                while(!done){
+                while (!done) {
                     String str = bufferedReader.readLine();
                     System.out.println(str);
+                    clientHandlerCallback.onNewMessageArrived(ClientHandler.this,str );
                 }
-            }catch (Exception e){
+            } catch (Exception e) {
                 close();
             }
 
@@ -100,6 +112,7 @@ public class ClientHandler {
         private void close() {
             done = true;
             CloseUtils.close(inputStream);
+            clientHandlerCallback.onSelfClosed(ClientHandler.this);
         }
     }
 }
