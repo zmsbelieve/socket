@@ -1,5 +1,6 @@
 package tcp.server;
 
+import lib.core.Connector;
 import tcp.utils.CloseUtils;
 
 import java.io.IOException;
@@ -7,7 +8,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -16,30 +16,33 @@ import java.util.concurrent.Executors;
  * @date 2020/11/25
  */
 public class ClientHandler {
+    private Connector connector;
     private SocketChannel socketChannel;
-    private ReadHandler readHandler;
     private WriteHandler writeHandler;
     private ClientHandlerCallback clientHandlerCallback;
 
-    private Selector readSelector;
     private Selector writeSelector;
 
     public ClientHandler(SocketChannel socketChannel, ClientHandlerCallback clientHandlerCallback) throws IOException {
         this.socketChannel = socketChannel;
-        socketChannel.configureBlocking(false);
+        connector = new Connector() {
+            @Override
+            public void onChannelClosed(SocketChannel channel) {
+                super.onChannelClosed(channel);
+                exitByItself();
+            }
 
-        readSelector = Selector.open();
-        socketChannel.register(readSelector, SelectionKey.OP_READ);
-        this.readHandler = new ReadHandler(readSelector);
-
+            @Override
+            protected void onReceiveMessage(String str) {
+                super.onReceiveMessage(str);
+                clientHandlerCallback.onNewMessageArrived(ClientHandler.this, str);
+            }
+        };
+        connector.setup(socketChannel);
         writeSelector = Selector.open();
         socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
         this.writeHandler = new WriteHandler(writeSelector);
         this.clientHandlerCallback = clientHandlerCallback;
-    }
-
-    public void readToPrint() {
-        readHandler.start();
     }
 
     public void send(String message) {
@@ -52,7 +55,7 @@ public class ClientHandler {
     }
 
     public void exit() {
-        readHandler.close();
+        CloseUtils.close(connector);
         writeHandler.exit();
         CloseUtils.close(socketChannel);
         System.out.println("客户端已经退出");
@@ -120,59 +123,4 @@ public class ClientHandler {
         void onNewMessageArrived(ClientHandler handler, String msg);
     }
 
-
-    class ReadHandler extends Thread {
-        private volatile boolean done;
-        private Selector selector;
-        private ByteBuffer byteBuffer;
-
-        public ReadHandler(Selector selector) {
-            this.selector = selector;
-            this.byteBuffer = ByteBuffer.allocate(256);
-        }
-
-        @Override
-        public void run() {
-            try {
-
-                while (!done) {
-                    if (selector.select() == 0) {
-                        if (done) {
-                            break;
-                        }
-                        continue;
-                    }
-                    Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
-                    while (iterator.hasNext()) {
-                        byteBuffer.clear();
-                        SelectionKey key = iterator.next();
-                        iterator.remove();
-                        if (key.isReadable()) {
-                            SocketChannel channel = (SocketChannel) key.channel();
-                            int read = channel.read(byteBuffer);
-                            if (read > 0) {
-                                //丢弃最后一个换行符
-                                String str = new String(byteBuffer.array(), 0, byteBuffer.position() - 1);
-                                System.out.println(str);
-                                clientHandlerCallback.onNewMessageArrived(ClientHandler.this, str);
-                            } else {
-                                System.out.println("客户端已无法读取数据");
-                                ClientHandler.this.exitByItself();
-                                break;
-                            }
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                close();
-            }
-
-        }
-
-        private void close() {
-            done = true;
-            selector.wakeup();
-            CloseUtils.close(selector);
-        }
-    }
 }

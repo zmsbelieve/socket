@@ -1,5 +1,7 @@
 package tcp.server;
 
+import lib.core.IoContext;
+import lib.impl.IoSelectorProvider;
 import tcp.constants.TCPConstants;
 
 import java.io.BufferedReader;
@@ -12,6 +14,9 @@ import java.io.InputStreamReader;
  */
 public class Server {
     public static void main(String[] args) throws IOException {
+        //new IoSelectorProvider的时候就开始进行 read 和 write的监听了
+        IoContext.setup().ioProvider(new IoSelectorProvider())
+                .start();
         TcpServer tcpServer = new TcpServer(TCPConstants.PORT_SERVER);
         boolean isSuccess = tcpServer.start();
         if (!isSuccess) {
@@ -35,5 +40,6 @@ public class Server {
         }
         udpProvider.stop();
         tcpServer.stop();
+        IoContext.close();
     }
 }

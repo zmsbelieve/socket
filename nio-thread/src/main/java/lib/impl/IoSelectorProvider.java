@@ -58,6 +58,8 @@ public class IoSelectorProvider implements IoProvider {
                                 handleSelection(selectionKey, SelectionKey.OP_READ, inputCallbackMap, inputHandlePool);
                             }
                         }
+                        //要记得清空！！！
+                        selectionKeys.clear();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

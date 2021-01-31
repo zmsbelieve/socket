@@ -120,7 +120,6 @@ public class TcpServer implements ClientHandler.ClientHandlerCallback {
                             SocketChannel channel = server.accept();
                             try {
                                 ClientHandler clientHandler = new ClientHandler(channel, TcpServer.this);
-                                clientHandler.readToPrint();
                                 synchronized (TcpServer.this) {
                                     clientHandlerList.add(clientHandler);
                                 }
