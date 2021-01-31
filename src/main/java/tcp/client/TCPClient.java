@@ -66,7 +66,7 @@ public class TCPClient {
                         System.out.println("连接已关闭，无法读取数据！");
                         break;
                     }
-                    System.out.println(str);
+//                    System.out.println(str);
                 }
             } catch (Exception e) {
                 if (!done) {
@@ -78,7 +78,7 @@ public class TCPClient {
         }
 
         private void close() {
-            done = false;
+            done = true;
             CloseUtils.close(inputStream);
         }
     }

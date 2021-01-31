@@ -1,16 +1,18 @@
 package tcp.client;
 
-import net.qiujuer.lesson.sample.client.bean.ServerInfo;
+
+import tcp.client.bean.ServerInfo;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class ClientTest {
     private static boolean done;
 
-    public static void main(String[] args) throws IOException {
-        ServerInfo info = UDPSearcher.searchServer(10000);
+    public static void main(String[] args) throws Exception {
+        ServerInfo info = UDPSearch.search(10000);
         System.out.println("Server:" + info);
         if (info == null) {
             return;
@@ -19,7 +21,7 @@ public class ClientTest {
         // 当前连接数量
         int size = 0;
         final List<TCPClient> tcpClients = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1000; i++) {
             try {
                 TCPClient tcpClient = TCPClient.startWith(info);
                 if (tcpClient == null) {
@@ -61,7 +63,13 @@ public class ClientTest {
         Thread thread = new Thread(runnable);
         thread.start();
 
-        System.in.read();
+        Scanner s = new Scanner(System.in);
+        while (true) {
+            String line = s.nextLine();
+            if (line.equals("exit")) break;
+            System.out.println(">>>" + line);
+        }
+
 
         // 等待线程完成
         done = true;
@@ -73,7 +81,7 @@ public class ClientTest {
 
         // 客户端结束操作
         for (TCPClient tcpClient : tcpClients) {
-            tcpClient.exit();
+            tcpClient.stop();
         }
 
     }

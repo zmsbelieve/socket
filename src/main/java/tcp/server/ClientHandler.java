@@ -31,7 +31,10 @@ public class ClientHandler {
     public void send(String message) {
         writeHandler.send(message);
     }
-
+    public void exitByItself(){
+        exit();
+        clientHandlerCallback.onSelfClosed(ClientHandler.this);
+    }
     public void exit() {
         readHandler.close();
         writeHandler.exit();
@@ -100,6 +103,9 @@ public class ClientHandler {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
                 while (!done) {
                     String str = bufferedReader.readLine();
+                    if(str == null){
+                        ClientHandler.this.exitByItself();
+                    }
                     System.out.println(str);
                     clientHandlerCallback.onNewMessageArrived(ClientHandler.this,str );
                 }
@@ -112,7 +118,6 @@ public class ClientHandler {
         private void close() {
             done = true;
             CloseUtils.close(inputStream);
-            clientHandlerCallback.onSelfClosed(ClientHandler.this);
         }
     }
 }
